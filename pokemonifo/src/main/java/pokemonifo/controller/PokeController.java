@@ -1,11 +1,10 @@
 package pokemonifo.controller;
 
 import org.apache.camel.ProducerTemplate;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import pokemonifo.model.PokemonDef;
 import pokemonifo.model.PokemonInfo;
+
 
 import java.util.List;
 
@@ -29,6 +28,21 @@ public class PokeController {
                 "type",
                 type,
                 List.class // Esperamos una lista de vuelta
+        );
+    }
+
+    // ERROR CORREGIDO AQUÍ ABAJO:
+    // Antes decías: public List<PokeDefRoutes> ...
+    // PokeDefRoutes es un Procesador, no un dato. Debes devolver PokemonDef.
+    @GetMapping("/defense")
+    public List<PokemonDef> getByDefense(@RequestParam(value = "min") int min) {
+
+        return producerTemplate.requestBodyAndHeader(
+                "direct:getPokemonByDefense",
+                null,
+                "minDefense",
+                min,
+                List.class
         );
     }
 }
