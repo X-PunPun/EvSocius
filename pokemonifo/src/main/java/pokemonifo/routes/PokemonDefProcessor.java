@@ -4,11 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Component; // <--- ¡ESTO ES LO QUE TE FALTA!
 import pokemonifo.model.PokemonDef;
 
+// Sin esta anotación @Component, Spring no ve esta clase y falla al arrancar
 @Component
-public class PokeDefRoutes implements Processor {
+public class PokemonDefProcessor implements Processor {
 
     @Override
     public void process(Exchange exchange) throws Exception {
@@ -19,7 +20,7 @@ public class PokeDefRoutes implements Processor {
         String name = root.path("name").asText();
         int defense = 0;
 
-        // La PokeAPI devuelve stats en un array. Hay que buscar cual es "defense"
+        // Buscamos la defensa dentro del array 'stats'
         JsonNode statsArray = root.path("stats");
         if (statsArray.isArray()) {
             for (JsonNode statNode : statsArray) {
@@ -31,7 +32,7 @@ public class PokeDefRoutes implements Processor {
             }
         }
 
-        // Reemplazamos el JSON gigante por nuestro objeto simple
+        // Devolvemos el objeto PokemonDef
         exchange.getIn().setBody(new PokemonDef(name, defense));
     }
 }

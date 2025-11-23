@@ -4,11 +4,11 @@ public class PokemonDef {
     private String name;
     private int defense;
 
-    public PokemonDef(){}
+    public PokemonDef() {}
 
-    public PokemonDef(String name, int defense){
-        this.name=name;
-        this.defense=defense;
+    public PokemonDef(String name, int defense) {
+        this.name = name;
+        this.defense = defense;
     }
 
     public String getName() {
