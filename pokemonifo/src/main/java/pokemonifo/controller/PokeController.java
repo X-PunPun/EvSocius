@@ -1,73 +1,51 @@
 package pokemonifo.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.apache.camel.ProducerTemplate;
 import org.springframework.web.bind.annotation.*;
 import pokemonifo.model.PokemonDef;
 import pokemonifo.model.PokemonExp;
 import pokemonifo.model.PokemonType;
 import pokemonifo.model.PokemonWeight;
+import pokemonifo.service.IPokemonService;
 
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/pokemon")
+@Tag(name = "Pokemon API", description = "API Hexagonal con Camel")
 public class PokeController {
 
-    private final ProducerTemplate producerTemplate;
+    private final IPokemonService pokemonService;
 
-    public PokeController(ProducerTemplate producerTemplate) {
-        this.producerTemplate = producerTemplate;
+    // Inyectamos el servicio, no el ProducerTemplate
+    public PokeController(IPokemonService pokemonService) {
+        this.pokemonService = pokemonService;
     }
 
+    @Operation(summary = "Buscar por Tipo", description = "Retorna lista de Pokemones de un tipo específico")
     @GetMapping("/type/{type}")
-    public List<PokemonType> getByType(@PathVariable String type) { // <--- Devuelve List<PokemonType>
-
-        return producerTemplate.requestBodyAndHeader(
-                "direct:getPokemonByType",
-                null,
-                "type",
-                type,
-                List.class
-        );
+    public List<PokemonType> getByType(@PathVariable String type) {
+        return pokemonService.getPokemonByType(type);
     }
 
-    // Requerimiento 2.2: Filtrar por defensa mínima
+    @Operation(summary = "Filtrar por Defensa", description = "Filtra Pokemones tipo Acero con defensa mínima")
     @GetMapping("/defense")
     public List<PokemonDef> getByDefense(@RequestParam(value = "min") int min) {
-
-        return producerTemplate.requestBodyAndHeader(
-                "direct:getPokemonByDefense",
-                null,
-                "minDefense",
-                min,
-                List.class
-        );
+        return pokemonService.getPokemonByDefense(min);
     }
 
+    @Operation(summary = "Filtrar por Peso", description = "Filtra Pokemones tipo Normal en rango de peso")
     @GetMapping("/weight")
-    public List<PokemonWeight> getByWeight(
-            @RequestParam(value = "min") int min,
-            @RequestParam(value = "max") int max) {
-
-        return producerTemplate.requestBodyAndHeaders(
-                "direct:getPokemonByWeight",
-                null,
-                java.util.Map.of("minWeight", min, "maxWeight", max),
-                List.class
-        );
+    public List<PokemonWeight> getByWeight(@RequestParam(value = "min") int min, @RequestParam(value = "max") int max) {
+        return pokemonService.getPokemonByWeight(min, max);
     }
 
-    // Requerimiento 2.4: Filtrar por experiencia base
+    @Operation(summary = "Filtrar por Experiencia", description = "Filtra Pokemones tipo Psíquico por experiencia base")
     @GetMapping("/exp")
     public List<PokemonExp> getByExp(@RequestParam(value = "min") int min) {
-
-        return producerTemplate.requestBodyAndHeader(
-                "direct:getPokemonByExp",
-                null,
-                "minExp",
-                min,
-                List.class
-        );
+        return pokemonService.getPokemonByExp(min);
     }
 }
