@@ -28,38 +28,31 @@ public class PokeRoutes extends RouteBuilder {
     @Override
     public void configure() throws Exception {
 
-        // =========================================================================
-        // MANEJO DE ERRORES (Requerimiento 8)
-        // =========================================================================
-
-        // 1. Timeout (Captura si la API tarda más de 3s según application.properties)
+        // MANEJO DE ERRORES
         onException(SocketTimeoutException.class)
                 .handled(true)
-                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(504)) // Gateway Timeout
+                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(504))
                 .process(e -> {
                     Map<String, String> map = new HashMap<>();
                     map.put("error", "Timeout");
-                    map.put("message", "La PokeAPI tardó demasiado en responder (más de 3s).");
+                    map.put("message", "La PokeAPI tardó demasiado en responder.");
                     e.getIn().setBody(map);
                 });
 
-        // 2. Error HTTP de la API (Ej: 404 Not Found)
         onException(HttpOperationFailedException.class)
                 .handled(true)
                 .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
                 .process(e -> {
-                    // Recuperamos el código de error real que dio la API
                     HttpOperationFailedException ex = e.getProperty(Exchange.EXCEPTION_CAUGHT, HttpOperationFailedException.class);
                     Map<String, String> map = new HashMap<>();
                     map.put("error", "API Error");
-                    map.put("message", "Recurso no encontrado en PokeAPI. Status: " + ex.getStatusCode());
+                    map.put("message", "Recurso no encontrado. Status: " + ex.getStatusCode());
                     e.getIn().setBody(map);
                 });
 
-        // 3. Validación de Negocio (Ej: Peso negativo)
         onException(IllegalArgumentException.class)
                 .handled(true)
-                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400)) // Bad Request
+                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
                 .process(e -> {
                     String msg = e.getProperty(Exchange.EXCEPTION_CAUGHT, Exception.class).getMessage();
                     Map<String, String> map = new HashMap<>();
@@ -68,21 +61,13 @@ public class PokeRoutes extends RouteBuilder {
                     e.getIn().setBody(map);
                 });
 
-        // =========================================================================
-        // RUTAS
-        // =========================================================================
-
-        // --- RUTA 1: TIPO ---
+        // RUTA 1: OBTENER LISTA POR TIPO (Reutilizable)
         from("direct:getPokemonByType")
                 .routeId("GetByType")
-                .log("Consultando tipo: ${header.type}")
+                .log("Consultando API externa para el tipo: ${header.type}")
                 .removeHeaders("CamelHttp*")
                 .setHeader(Exchange.HTTP_METHOD, constant("GET"))
-
-                // SOLUCIÓN AL ERROR: Quitamos el parámetro socketTimeout de aquí.
-                // Camel usará la configuración global de application.properties
                 .toD("{{pokeapi.base-url}}type/${header.type}?bridgeEndpoint=true")
-
                 .process(exchange -> {
                     String jsonRaw = exchange.getIn().getBody(String.class);
                     String typeName = exchange.getIn().getHeader("type", String.class);
@@ -99,24 +84,20 @@ public class PokeRoutes extends RouteBuilder {
                     exchange.getIn().setBody(listaLimpia);
                 });
 
-        // --- RUTA 2: DEFENSA ---
+        // RUTA 2: DEFENSA
         from("direct:getPokemonByDefense")
                 .routeId("GetByDefense")
-                // VALIDACIÓN: Si es negativo, lanzamos error manual
                 .process(e -> {
                     Integer min = e.getIn().getHeader("minDefense", Integer.class);
                     if (min != null && min < 0) throw new IllegalArgumentException("La defensa mínima no puede ser negativa.");
                 })
-                .setHeader("type", constant("steel"))
+                // Ya no fijamos el tipo aquí. Usamos el header "type" que viene del Adapter.
                 .to("direct:getPokemonByType")
                 .split(body(), new ListaAgregar()).parallelProcessing()
                 .setHeader("pokemonName", simple("${body.name}"))
                 .removeHeaders("CamelHttp*")
                 .setHeader(Exchange.HTTP_METHOD, constant("GET"))
-
-                // URL Limpia
                 .toD("{{pokeapi.base-url}}pokemon/${header.pokemonName}?bridgeEndpoint=true")
-
                 .process(pokemonDefProces)
                 .process(e -> {
                     PokemonDef p = e.getIn().getBody(PokemonDef.class);
@@ -127,28 +108,21 @@ public class PokeRoutes extends RouteBuilder {
                 })
                 .end();
 
-        // --- RUTA 3: PESO ---
+        // RUTA 3: PESO
         from("direct:getPokemonByWeight")
                 .routeId("GetByWeight")
-                // VALIDACIÓN: Rango coherente
                 .process(e -> {
                     Integer min = e.getIn().getHeader("minWeight", Integer.class);
                     Integer max = e.getIn().getHeader("maxWeight", Integer.class);
-                    if (min != null && max != null && min > max) {
-                        throw new IllegalArgumentException("El peso mínimo no puede ser mayor al máximo.");
-                    }
+                    if (min != null && max != null && min > max) throw new IllegalArgumentException("Peso mín > máx.");
                     if (min != null && min < 0) throw new IllegalArgumentException("El peso no puede ser negativo.");
                 })
-                .setHeader("type", constant("normal")) //Tipo pokemon
                 .to("direct:getPokemonByType")
                 .split(body(), new ListaAgregar()).parallelProcessing()
                 .setHeader("pokemonName", simple("${body.name}"))
                 .removeHeaders("CamelHttp*")
                 .setHeader(Exchange.HTTP_METHOD, constant("GET"))
-
-                // URL Limpia
                 .toD("{{pokeapi.base-url}}pokemon/${header.pokemonName}?bridgeEndpoint=true")
-
                 .process(pokeWeight)
                 .process(e -> {
                     PokemonWeight p = e.getIn().getBody(PokemonWeight.class);
@@ -160,24 +134,19 @@ public class PokeRoutes extends RouteBuilder {
                 })
                 .end();
 
-        // --- RUTA 4: EXPERIENCIA ---
+        // RUTA 4: EXPERIENCIA
         from("direct:getPokemonByExp")
                 .routeId("GetByExp")
-                // VALIDACIÓN
                 .process(e -> {
                     Integer min = e.getIn().getHeader("minExp", Integer.class);
                     if (min != null && min < 0) throw new IllegalArgumentException("La experiencia no puede ser negativa.");
                 })
-                .setHeader("type", constant("psychic"))
                 .to("direct:getPokemonByType")
                 .split(body(), new ListaAgregar()).parallelProcessing()
                 .setHeader("pokemonName", simple("${body.name}"))
                 .removeHeaders("CamelHttp*")
                 .setHeader(Exchange.HTTP_METHOD, constant("GET"))
-
-                // URL Limpia
                 .toD("{{pokeapi.base-url}}pokemon/${header.pokemonName}?bridgeEndpoint=true")
-
                 .process(pokemonExpProcessor)
                 .process(e -> {
                     PokemonExp p = e.getIn().getBody(PokemonExp.class);

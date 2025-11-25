@@ -26,17 +26,21 @@ public class PokeCamelAdapter implements IPokemonRepository {
     }
 
     @Override
-    public List<PokemonDef> fetchByDefense(int min) {
-        return producerTemplate.requestBodyAndHeader("direct:getPokemonByDefense", null, "minDefense", min, List.class);
+    public List<PokemonDef> fetchByDefense(int min, String type) {
+        // Enviamos 'type' en el header
+        Map<String, Object> headers = Map.of("minDefense", min, "type", type);
+        return producerTemplate.requestBodyAndHeaders("direct:getPokemonByDefense", null, headers, List.class);
     }
 
     @Override
-    public List<PokemonWeight> fetchByWeight(int min, int max) {
-        return producerTemplate.requestBodyAndHeaders("direct:getPokemonByWeight", null, Map.of("minWeight", min, "maxWeight", max), List.class);
+    public List<PokemonWeight> fetchByWeight(int min, int max, String type) {
+        Map<String, Object> headers = Map.of("minWeight", min, "maxWeight", max, "type", type);
+        return producerTemplate.requestBodyAndHeaders("direct:getPokemonByWeight", null, headers, List.class);
     }
 
     @Override
-    public List<PokemonExp> fetchByExp(int min) {
-        return producerTemplate.requestBodyAndHeader("direct:getPokemonByExp", null, "minExp", min, List.class);
+    public List<PokemonExp> fetchByExp(int min, String type) {
+        Map<String, Object> headers = Map.of("minExp", min, "type", type);
+        return producerTemplate.requestBodyAndHeaders("direct:getPokemonByExp", null, headers, List.class);
     }
 }

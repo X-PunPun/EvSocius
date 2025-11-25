@@ -11,6 +11,7 @@ import java.util.List;
 @Service
 public class PokemonService implements IPokemonService {
 
+
     private final IPokemonRepository repository;
 
     public PokemonService(IPokemonRepository repository) {
@@ -23,21 +24,21 @@ public class PokemonService implements IPokemonService {
     }
 
     @Override
-    public List<PokemonDef> getPokemonByDefense(int min) {
-        return repository.fetchByDefense(min);
+    public List<PokemonDef> getPokemonByDefense(int min, String type) {
+        return repository.fetchByDefense(min, type);
     }
 
     @Override
-    public List<PokemonWeight> getPokemonByWeight(int min, int max) {
-        // Validación de negocio antes de llamar a Camel
+    public List<PokemonWeight> getPokemonByWeight(int min, int max, String type) {
+        // Validación de negocio
         if (min < 0 || max < min) {
             throw new IllegalArgumentException("Rango de peso inválido: min debe ser menor que max y positivo.");
         }
-        return repository.fetchByWeight(min, max);
+        return repository.fetchByWeight(min, max, type);
     }
 
     @Override
-    public List<PokemonExp> getPokemonByExp(int min) {
-        return repository.fetchByExp(min);
+    public List<PokemonExp> getPokemonByExp(int min, String type) {
+        return repository.fetchByExp(min, type);
     }
 }

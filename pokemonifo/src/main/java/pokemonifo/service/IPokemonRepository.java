@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface IPokemonRepository {
     List<PokemonType> fetchByType(String type);
-    List<PokemonDef> fetchByDefense(int min);
-    List<PokemonWeight> fetchByWeight(int min, int max);
-    List<PokemonExp> fetchByExp(int min);
+    List<PokemonDef> fetchByDefense(int min, String type);
+    List<PokemonWeight> fetchByWeight(int min, int max, String type);
+    List<PokemonExp> fetchByExp(int min, String type);
 }

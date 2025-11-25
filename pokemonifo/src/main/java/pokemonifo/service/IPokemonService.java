@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface IPokemonService {
     List<PokemonType> getPokemonByType(String type);
-    List<PokemonDef> getPokemonByDefense(int min);
-    List<PokemonWeight> getPokemonByWeight(int min, int max);
-    List<PokemonExp> getPokemonByExp(int min);
+    List<PokemonDef> getPokemonByDefense(int min, String type);
+    List<PokemonWeight> getPokemonByWeight(int min, int max, String type);
+    List<PokemonExp> getPokemonByExp(int min, String type);
 }

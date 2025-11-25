@@ -29,10 +29,4 @@ public class ListaAgregar implements AggregationStrategy {
         }
     }
 
-    private void addBody(List<Object> list, Exchange exchange) {
-        Object body = exchange.getIn().getBody();
-        if (body != null) {
-            list.add(body);
-        }
-    }
 }
