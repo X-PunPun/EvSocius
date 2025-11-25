@@ -5,15 +5,13 @@ Este proyecto es una implementación avanzada de un servicio REST que consume la
 ## Requerimientos
 * Java 17 o superior
 * Maven 3.9+
++ Camel (tod)
 
 ## Instrucciones de Ejecución
 
 1.  Clonar el repositorio o descomprimir el proyecto.
-2.  Abrir una terminal en la carpeta raíz.
-3.  Ejecutar el comando:
-    bash
-    mvn spring-boot:run
-    
+2.  Abrir java IntelliJ IDEA
+3.  Ejecutar Micro servicio
 4.  El servidor iniciará en el puerto *8080*.
 
 ## Documentación API (Swagger)
