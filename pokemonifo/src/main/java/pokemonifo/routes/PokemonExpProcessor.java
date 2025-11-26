@@ -18,7 +18,7 @@ public class PokemonExpProcessor implements Processor {
 
         String name = root.path("name").asText();
 
-        // La experiencia base está en la raíz del JSON de PokeAPI
+        // La experiencia raíz del JSON de PokeAPI
         int baseExp = root.path("base_experience").asInt();
 
         exchange.getIn().setBody(new PokemonExp(name, baseExp));

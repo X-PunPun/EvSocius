@@ -4,10 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
-import org.springframework.stereotype.Component; // <--- ¡ESTO ES LO QUE TE FALTA!
+import org.springframework.stereotype.Component;
 import pokemonifo.model.PokemonDef;
 
-// Sin esta anotación @Component, Spring no ve esta clase y falla al arrancar
 @Component
 public class PokemonDefProcessor implements Processor {
 
@@ -20,7 +19,7 @@ public class PokemonDefProcessor implements Processor {
         String name = root.path("name").asText();
         int defense = 0;
 
-        // Buscamos la defensa dentro del array 'stats'
+        // se busca la defensa dentro del array
         JsonNode statsArray = root.path("stats");
         if (statsArray.isArray()) {
             for (JsonNode statNode : statsArray) {

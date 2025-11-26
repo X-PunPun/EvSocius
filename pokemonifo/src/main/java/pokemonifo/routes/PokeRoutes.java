@@ -38,7 +38,7 @@ public class PokeRoutes extends RouteBuilder {
                     map.put("message", "La PokeAPI tardó demasiado en responder.");
                     e.getIn().setBody(map);
                 });
-
+        //Recurso no encontrado
         onException(HttpOperationFailedException.class)
                 .handled(true)
                 .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
@@ -49,7 +49,7 @@ public class PokeRoutes extends RouteBuilder {
                     map.put("message", "Recurso no encontrado. Status: " + ex.getStatusCode());
                     e.getIn().setBody(map);
                 });
-
+        //peticion invalida
         onException(IllegalArgumentException.class)
                 .handled(true)
                 .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
@@ -61,7 +61,7 @@ public class PokeRoutes extends RouteBuilder {
                     e.getIn().setBody(map);
                 });
 
-        // RUTA 1: OBTENER LISTA POR TIPO (Reutilizable)
+        // RUTA 1 Buscar por TIPO
         from("direct:getPokemonByType")
                 .routeId("GetByType")
                 .log("Consultando API externa para el tipo: ${header.type}")
@@ -84,7 +84,7 @@ public class PokeRoutes extends RouteBuilder {
                     exchange.getIn().setBody(listaLimpia);
                 });
 
-        // RUTA 2: DEFENSA
+        // RUTA 2 Buscar por Defensa
         from("direct:getPokemonByDefense")
                 .routeId("GetByDefense")
                 .process(e -> {
@@ -108,7 +108,7 @@ public class PokeRoutes extends RouteBuilder {
                 })
                 .end();
 
-        // RUTA 3: PESO
+        // RUTA 3 Buscar por PESO
         from("direct:getPokemonByWeight")
                 .routeId("GetByWeight")
                 .process(e -> {

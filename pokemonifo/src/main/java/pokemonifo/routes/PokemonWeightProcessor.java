@@ -17,9 +17,9 @@ public class PokemonWeightProcessor implements Processor {
         JsonNode root = mapper.readTree(jsonBody);
 
         String name = root.path("name").asText();
-        int weight = root.path("weight").asInt(); // El peso está en la raíz del JSON
+        int weight = root.path("weight").asInt(); //peso
 
-        // Creamos el objeto limpio, SIN defensa
+        // Creamos objeto
         exchange.getIn().setBody(new PokemonWeight(name, weight));
     }
 }

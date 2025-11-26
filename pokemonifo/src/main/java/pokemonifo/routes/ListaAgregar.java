@@ -12,7 +12,7 @@ public class ListaAgregar implements AggregationStrategy {
     public Exchange aggregate(Exchange oldExchange, Exchange newExchange) {
         List<Object> list;
 
-        // 1. Si el nuevo intercambio tiene el cuerpo NULL, LO IGNORAMOS y devolvemos lo que ya teníamos
+        // Si el nuevo intercambio tiene el cuerpo NULL, se ignora y devolvemos lo que ya teníamos
         if (newExchange.getIn().getBody() == null) {
             return oldExchange;
         }
