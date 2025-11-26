@@ -4,19 +4,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.http.base.HttpOperationFailedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import pokemonifo.exception.PokemonNotFoundException;
 import pokemonifo.model.PokemonDef;
 import pokemonifo.model.PokemonExp;
 import pokemonifo.model.PokemonType;
 import pokemonifo.model.PokemonWeight;
 
-import java.net.SocketTimeoutException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Component
 public class PokeRoutes extends RouteBuilder {
@@ -28,40 +25,7 @@ public class PokeRoutes extends RouteBuilder {
     @Override
     public void configure() throws Exception {
 
-        // MANEJO DE ERRORES
-        onException(SocketTimeoutException.class)
-                .handled(true)
-                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(504))
-                .process(e -> {
-                    Map<String, String> map = new HashMap<>();
-                    map.put("error", "Timeout");
-                    map.put("message", "La PokeAPI tardó demasiado en responder.");
-                    e.getIn().setBody(map);
-                });
-        //Recurso no encontrado
-        onException(HttpOperationFailedException.class)
-                .handled(true)
-                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
-                .process(e -> {
-                    HttpOperationFailedException ex = e.getProperty(Exchange.EXCEPTION_CAUGHT, HttpOperationFailedException.class);
-                    Map<String, String> map = new HashMap<>();
-                    map.put("error", "API Error");
-                    map.put("message", "Recurso no encontrado. Status: " + ex.getStatusCode());
-                    e.getIn().setBody(map);
-                });
-        //peticion invalida
-        onException(IllegalArgumentException.class)
-                .handled(true)
-                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
-                .process(e -> {
-                    String msg = e.getProperty(Exchange.EXCEPTION_CAUGHT, Exception.class).getMessage();
-                    Map<String, String> map = new HashMap<>();
-                    map.put("error", "Petición Inválida");
-                    map.put("message", msg);
-                    e.getIn().setBody(map);
-                });
-
-        // RUTA 1 Buscar por TIPO
+        // RUTA 1 busca por TIPO
         from("direct:getPokemonByType")
                 .routeId("GetByType")
                 .log("Consultando API externa para el tipo: ${header.type}")
@@ -81,17 +45,16 @@ public class PokeRoutes extends RouteBuilder {
                             listaLimpia.add(new PokemonType(pData.path("name").asText(), typeName));
                         }
                     }
+                    // VALIDACIÓN DE VACÍO  404
+                    if (listaLimpia.isEmpty()) {
+                        throw new PokemonNotFoundException("No se encontraron Pokemones para el tipo: " + typeName);
+                    }
                     exchange.getIn().setBody(listaLimpia);
                 });
 
-        // RUTA 2 Buscar por Defensa
+        // RUTA 2 busca por DEFENSA
         from("direct:getPokemonByDefense")
                 .routeId("GetByDefense")
-                .process(e -> {
-                    Integer min = e.getIn().getHeader("minDefense", Integer.class);
-                    if (min != null && min < 0) throw new IllegalArgumentException("La defensa mínima no puede ser negativa.");
-                })
-                // Ya no fijamos el tipo aquí. Usamos el header "type" que viene del Adapter.
                 .to("direct:getPokemonByType")
                 .split(body(), new ListaAgregar()).parallelProcessing()
                 .setHeader("pokemonName", simple("${body.name}"))
@@ -106,17 +69,19 @@ public class PokeRoutes extends RouteBuilder {
                         e.getIn().setBody(null);
                     }
                 })
-                .end();
+                .end()
 
-        // RUTA 3 Buscar por PESO
+                // VALIDACIÓN DE VACÍO FINAL  404
+                .process(e -> {
+                    List<?> list = e.getIn().getBody(List.class);
+                    if (list == null || list.isEmpty()) {
+                        throw new PokemonNotFoundException("Ningún Pokémon cumple con la defensa mínima solicitada.");
+                    }
+                });
+
+        // RUTA 3 busca por PESO
         from("direct:getPokemonByWeight")
                 .routeId("GetByWeight")
-                .process(e -> {
-                    Integer min = e.getIn().getHeader("minWeight", Integer.class);
-                    Integer max = e.getIn().getHeader("maxWeight", Integer.class);
-                    if (min != null && max != null && min > max) throw new IllegalArgumentException("Peso mín > máx.");
-                    if (min != null && min < 0) throw new IllegalArgumentException("El peso no puede ser negativo.");
-                })
                 .to("direct:getPokemonByType")
                 .split(body(), new ListaAgregar()).parallelProcessing()
                 .setHeader("pokemonName", simple("${body.name}"))
@@ -132,15 +97,19 @@ public class PokeRoutes extends RouteBuilder {
                         if (p.getWeight() < min || p.getWeight() > max) e.getIn().setBody(null);
                     }
                 })
-                .end();
+                .end()
+
+                // VALIDACIÓN DE VACÍO FINAL  404
+                .process(e -> {
+                    List<?> list = e.getIn().getBody(List.class);
+                    if (list == null || list.isEmpty()) {
+                        throw new PokemonNotFoundException("Ningún Pokémon se encuentra en ese rango de peso.");
+                    }
+                });
 
         // RUTA 4: EXPERIENCIA
         from("direct:getPokemonByExp")
                 .routeId("GetByExp")
-                .process(e -> {
-                    Integer min = e.getIn().getHeader("minExp", Integer.class);
-                    if (min != null && min < 0) throw new IllegalArgumentException("La experiencia no puede ser negativa.");
-                })
                 .to("direct:getPokemonByType")
                 .split(body(), new ListaAgregar()).parallelProcessing()
                 .setHeader("pokemonName", simple("${body.name}"))
@@ -155,6 +124,14 @@ public class PokeRoutes extends RouteBuilder {
                         e.getIn().setBody(null);
                     }
                 })
-                .end();
+                .end()
+
+                // VALIDACIÓN DE VACÍO FINAL 404
+                .process(e -> {
+                    List<?> list = e.getIn().getBody(List.class);
+                    if (list == null || list.isEmpty()) {
+                        throw new PokemonNotFoundException("Ningún Pokémon tiene la experiencia base mínima solicitada.");
+                    }
+                });
     }
 }

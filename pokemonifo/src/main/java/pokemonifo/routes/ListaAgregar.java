@@ -11,22 +11,24 @@ public class ListaAgregar implements AggregationStrategy {
     @Override
     public Exchange aggregate(Exchange oldExchange, Exchange newExchange) {
         List<Object> list;
-
-        // Si el nuevo intercambio tiene el cuerpo NULL, se ignora y devolvemos lo que ya teníamos
-        if (newExchange.getIn().getBody() == null) {
-            return oldExchange;
-        }
+        Object newBody = newExchange.getIn().getBody();
 
         if (oldExchange == null) {
+            // Creamos la lista aunque el primer elemento sea null.
             list = new ArrayList<>();
-            list.add(newExchange.getIn().getBody());
+            if (newBody != null) {
+                list.add(newBody);
+            }
+            // Retornamos el newExchange con la lista iniciada
             newExchange.getIn().setBody(list);
             return newExchange;
         } else {
+            // Recuperamos la lista acumulada y agregamos si no es null
             list = oldExchange.getIn().getBody(List.class);
-            list.add(newExchange.getIn().getBody());
+            if (newBody != null) {
+                list.add(newBody);
+            }
             return oldExchange;
         }
     }
-
 }
